@@ -49,9 +49,3 @@ ai-project-dashboard/
 ## About
 Built as a portfolio project to demonstrate AI integration skills.
 ```
-
-Save it with `Ctrl + S`, then push it to GitHub:
-```
-git add README.md
-git commit -m "Add README with project description and setup instructions"
-git push
