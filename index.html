@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Project Status Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 130px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #999;
+      background: white;
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 9px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #333; }
+    button:disabled { background: #999; cursor: not-allowed; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .summary-text {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #1a1a1a;
+    }
+
+    .risk-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .risk-item:last-child { border-bottom: none; }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    .badge-high { background: #fee2e2; color: #991b1b; }
+    .badge-med  { background: #fef3c7; color: #92400e; }
+    .badge-low  { background: #dcfce7; color: #166534; }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .action-item:last-child { border-bottom: none; }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3b82f6;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    #results { display: none; }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 32px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .health-green { color: #16a34a; }
+    .health-amber { color: #d97706; }
+    .health-red   { color: #dc2626; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <header>
+      <h1>AI Project Status Dashboard</h1>
+      <p>Paste your project update — get instant summary, risks, and action items</p>
+    </header>
+
+    <div class="card">
+      <label for="update-input">Project update</label>
+      <textarea
+        id="update-input"
+        placeholder="e.g. Sprint 3 is 80% complete. Backend API is done but the frontend is delayed by 2 days. QA found 3 critical bugs. Launch is scheduled for Friday..."
+      ></textarea>
+      <button id="analyze-btn" onclick="analyzeUpdate()">Analyze update</button>
+    </div>
+
+    <div id="loading">Analyzing your update...</div>
+
+    <div id="results">
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Overall health</div>
+          <div class="metric-value" id="health-value">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Risks flagged</div>
+          <div class="metric-value" id="risk-count">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Action items</div>
+          <div class="metric-value" id="action-count">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Summary</p>
+        <p class="summary-text" id="summary-text"></p>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Risks</p>
+        <div id="risks-list"></div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Action items</p>
+        <div id="actions-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    async function analyzeUpdate() {
+      const text = document.getElementById('update-input').value.trim();
+
+      if (!text) {
+        alert('Please paste a project update first.');
+        return;
+      }
+
+      document.getElementById('analyze-btn').disabled = true;
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+
+      try {
+        const response = await fetch('/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text })
+        });
+
+        const data = await response.json();
+        displayResults(data);
+
+      } catch (error) {
+        alert('Something went wrong. Make sure app.py is running.');
+      } finally {
+        document.getElementById('analyze-btn').disabled = false;
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function displayResults(data) {
+      const healthEl = document.getElementById('health-value');
+      healthEl.textContent = data.health;
+      healthEl.className = 'metric-value';
+      if (data.health === 'On track') healthEl.classList.add('health-green');
+      else if (data.health === 'At risk') healthEl.classList.add('health-amber');
+      else healthEl.classList.add('health-red');
+
+      document.getElementById('risk-count').textContent = data.risks.length;
+      document.getElementById('action-count').textContent = data.actions.length;
+      document.getElementById('summary-text').textContent = data.summary;
+
+      const risksList = document.getElementById('risks-list');
+      risksList.innerHTML = '';
+      data.risks.forEach(risk => {
+        const div = document.createElement('div');
+        div.className = 'risk-item';
+        const badgeClass = risk.level === 'High' ? 'badge-high' :
+                           risk.level === 'Medium' ? 'badge-med' : 'badge-low';
+        div.innerHTML = `<span class="badge ${badgeClass}">${risk.level}</span>
+                         <span>${risk.text}</span>`;
+        risksList.appendChild(div);
+      });
+
+      const actionsList = document.getElementById('actions-list');
+      actionsList.innerHTML = '';
+      data.actions.forEach(action => {
+        const div = document.createElement('div');
+        div.className = 'action-item';
+        div.innerHTML = `<div class="dot"></div><span>${action}</span>`;
+        actionsList.appendChild(div);
+      });
+
+      document.getElementById('results').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
