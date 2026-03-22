@@ -1,15 +1,24 @@
 # AI Project Status Dashboard
 
-An AI-powered web app that analyzes project status updates and returns:
+An intelligent web app that analyzes project status updates and instantly returns:
+
 - A plain-English summary
 - Flagged risks (High / Medium / Low)
 - Recommended action items
-- Overall project health status
+- Overall project health (On track / At risk / Critical)
+
+## How it works
+
+This project uses a **rule-based NLP engine** built entirely in Python —
+no external AI APIs, no cost, no rate limits. The analyzer scans project
+updates for risk keywords, scores sentences by severity, and generates
+structured output. This makes it fast, predictable, and easy to extend.
 
 ## Tech stack
+
 - **Frontend**: HTML, CSS, JavaScript
 - **Backend**: Python, Flask
-- **AI**: Anthropic Claude API
+- **Analysis**: Custom NLP engine (rule-based keyword scoring)
 
 ## How to run locally
 
@@ -21,16 +30,10 @@ cd ai-project-dashboard
 
 ### 2. Install dependencies
 ```
-pip install -r requirements.txt
+pip install flask
 ```
 
-### 3. Add your API key
-Create a file called `.env` and add:
-```
-ANTHROPIC_API_KEY=your_key_here
-```
-
-### 4. Run the app
+### 3. Run the app
 ```
 python app.py
 ```
@@ -41,11 +44,17 @@ Open your browser at `http://localhost:5000`
 ```
 ai-project-dashboard/
 ├── index.html        # Frontend dashboard UI
-├── app.py            # Python/Flask backend server
+├── app.py            # Python/Flask backend + NLP analysis engine
 ├── requirements.txt  # Python dependencies
+├── .gitignore        # Files excluded from version control
 └── README.md         # This file
 ```
 
-## About
-Built as a portfolio project to demonstrate AI integration skills.
-```
+## Roadmap
+
+- [x] Rule-based NLP analysis engine
+- [x] Risk detection and severity scoring
+- [x] Action item extraction
+- [ ] Jira integration to fetch and analyze tickets automatically
+- [ ] AI API integration (Claude / Gemini) as optional enhancement
+- [ ] Export analysis as PDF report
