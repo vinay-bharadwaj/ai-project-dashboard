@@ -43,12 +43,22 @@
       margin-bottom: 16px;
     }
 
-    label {
-      display: block;
+    .input-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .input-header label {
       font-size: 13px;
       font-weight: 500;
       color: #555;
-      margin-bottom: 8px;
+    }
+
+    .char-count {
+      font-size: 12px;
+      color: #aaa;
     }
 
     textarea {
@@ -69,8 +79,14 @@
       background: white;
     }
 
-    button {
+    .button-row {
+      display: flex;
+      gap: 8px;
       margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
       padding: 9px 24px;
       font-size: 14px;
       font-weight: 500;
@@ -81,8 +97,34 @@
       cursor: pointer;
     }
 
-    button:hover { background: #333; }
-    button:disabled { background: #999; cursor: not-allowed; }
+    .btn-primary:hover { background: #333; }
+    .btn-primary:disabled { background: #999; cursor: not-allowed; }
+
+    .btn-secondary {
+      padding: 9px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      background: white;
+      color: #555;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover { background: #f5f5f5; }
+
+    .btn-sample {
+      padding: 9px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-sample:hover { background: #dbeafe; }
 
     .metrics {
       display: grid;
@@ -170,6 +212,22 @@
       flex-shrink: 0;
     }
 
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-top-color: #1a1a1a;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     #results { display: none; }
 
     #loading {
@@ -178,6 +236,30 @@
       padding: 32px;
       color: #666;
       font-size: 14px;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #aaa;
+      text-align: right;
+      margin-bottom: 12px;
+    }
+
+    .error-banner {
+      display: none;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .no-risks {
+      font-size: 13px;
+      color: #16a34a;
+      padding: 8px 0;
     }
 
     .health-green { color: #16a34a; }
@@ -195,17 +277,38 @@
     </header>
 
     <div class="card">
-      <label for="update-input">Project update</label>
+      <div class="input-header">
+        <label for="update-input">Project update</label>
+        <span class="char-count" id="char-count">0 characters</span>
+      </div>
       <textarea
         id="update-input"
-        placeholder="e.g. Sprint 3 is 80% complete. Backend API is done but the frontend is delayed by 2 days. QA found 3 critical bugs. Launch is scheduled for Friday..."
+        placeholder="Paste your project update here... e.g. Sprint 3 is 80% complete. The backend is done but frontend is delayed by 2 days. QA found 3 critical bugs."
+        oninput="updateCharCount()"
       ></textarea>
-      <button id="analyze-btn" onclick="analyzeUpdate()">Analyze update</button>
+      <div class="button-row">
+        <button class="btn-primary" id="analyze-btn" onclick="analyzeUpdate()">
+          Analyze update
+        </button>
+        <button class="btn-sample" onclick="loadSample()">
+          Try sample update
+        </button>
+        <button class="btn-secondary" onclick="clearAll()">
+          Clear
+        </button>
+      </div>
     </div>
 
-    <div id="loading">Analyzing your update...</div>
+    <div class="error-banner" id="error-banner"></div>
+
+    <div id="loading">
+      <span class="spinner"></span>
+      Analyzing your project update...
+    </div>
 
     <div id="results">
+
+      <div class="timestamp" id="timestamp"></div>
 
       <div class="metrics">
         <div class="metric">
@@ -241,14 +344,54 @@
   </div>
 
   <script>
+    const SAMPLE_TEXT = `Sprint 4 is 70% complete and the backend API integration is finished. However the mobile UI has a critical bug that is blocking the QA team from testing. The launch is delayed by 3 days due to a dependency on the design team who are still finalizing assets. We need to escalate this to the director today. The team should schedule a daily standup to track the bug resolution. Stakeholder update is pending and must be sent by EOD.`;
+
+    function updateCharCount() {
+      const text = document.getElementById('update-input').value;
+      const count = text.length;
+      const el = document.getElementById('char-count');
+      el.textContent = count + ' character' + (count !== 1 ? 's' : '');
+      el.style.color = count > 1000 ? '#d97706' : '#aaa';
+    }
+
+    function loadSample() {
+      document.getElementById('update-input').value = SAMPLE_TEXT;
+      updateCharCount();
+      hideError();
+    }
+
+    function clearAll() {
+      document.getElementById('update-input').value = '';
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('char-count').textContent = '0 characters';
+      document.getElementById('char-count').style.color = '#aaa';
+      hideError();
+    }
+
+    function showError(message) {
+      const banner = document.getElementById('error-banner');
+      banner.textContent = message;
+      banner.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').style.display = 'none';
+    }
+
     async function analyzeUpdate() {
       const text = document.getElementById('update-input').value.trim();
 
       if (!text) {
-        alert('Please paste a project update first.');
+        showError('Please paste a project update or click "Try sample update" to see a demo.');
         return;
       }
 
+      if (text.length < 20) {
+        showError('Please enter a more detailed project update (at least a sentence or two).');
+        return;
+      }
+
+      hideError();
       document.getElementById('analyze-btn').disabled = true;
       document.getElementById('results').style.display = 'none';
       document.getElementById('loading').style.display = 'block';
@@ -260,11 +403,15 @@
           body: JSON.stringify({ text: text })
         });
 
+        if (!response.ok) {
+          throw new Error('Server returned an error. Make sure app.py is running.');
+        }
+
         const data = await response.json();
         displayResults(data);
 
       } catch (error) {
-        alert('Something went wrong. Make sure app.py is running.');
+        showError('Could not connect to the server. Make sure app.py is running in your terminal.');
       } finally {
         document.getElementById('analyze-btn').disabled = false;
         document.getElementById('loading').style.display = 'none';
@@ -272,6 +419,13 @@
     }
 
     function displayResults(data) {
+      const now = new Date();
+      document.getElementById('timestamp').textContent =
+        'Last analyzed: ' + now.toLocaleDateString('en-IN', {
+          day: 'numeric', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+
       const healthEl = document.getElementById('health-value');
       healthEl.textContent = data.health;
       healthEl.className = 'metric-value';
@@ -285,15 +439,19 @@
 
       const risksList = document.getElementById('risks-list');
       risksList.innerHTML = '';
-      data.risks.forEach(risk => {
-        const div = document.createElement('div');
-        div.className = 'risk-item';
-        const badgeClass = risk.level === 'High' ? 'badge-high' :
-                           risk.level === 'Medium' ? 'badge-med' : 'badge-low';
-        div.innerHTML = `<span class="badge ${badgeClass}">${risk.level}</span>
-                         <span>${risk.text}</span>`;
-        risksList.appendChild(div);
-      });
+      if (data.risks.length === 0) {
+        risksList.innerHTML = '<p class="no-risks">No risks detected — project looks healthy!</p>';
+      } else {
+        data.risks.forEach(risk => {
+          const div = document.createElement('div');
+          div.className = 'risk-item';
+          const badgeClass = risk.level === 'High' ? 'badge-high' :
+                             risk.level === 'Medium' ? 'badge-med' : 'badge-low';
+          div.innerHTML = `<span class="badge ${badgeClass}">${risk.level}</span>
+                           <span>${risk.text}</span>`;
+          risksList.appendChild(div);
+        });
+      }
 
       const actionsList = document.getElementById('actions-list');
       actionsList.innerHTML = '';
@@ -305,6 +463,7 @@
       });
 
       document.getElementById('results').style.display = 'block';
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
     }
   </script>
 </body>
