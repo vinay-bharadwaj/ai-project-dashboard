@@ -39,6 +39,8 @@ python app.py
 ```
 
 Open your browser at `http://localhost:5000`
+or 
+Live demo : "https://ai-project-dashboard-6os8.onrender.com/"
 
 ## Project structure
 ```
