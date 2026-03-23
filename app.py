@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
+from jira_connector import get_tickets
 import re
 import json
 
@@ -164,6 +165,111 @@ def analyze():
         return jsonify({'error': 'No text provided'}), 400
     result = analyze_text(project_text)
     return jsonify(result)
+
+@app.route('/jira-analyze', methods=['GET'])
+def jira_analyze():
+    data = get_tickets()
+    tickets = data['tickets']
+
+    all_risks = []
+    all_actions = []
+    seen_risks = set()
+
+    critical_count = sum(
+        1 for t in tickets if t['priority'] == 'Critical'
+    )
+    blocked_count = sum(
+        1 for t in tickets if t['status'] == 'Blocked'
+    )
+    done_count = sum(
+        1 for t in tickets if t['status'] == 'Done'
+    )
+    unassigned_count = sum(
+        1 for t in tickets if t['assignee'] == 'Unassigned'
+    )
+    total = len(tickets)
+    completion_pct = round((done_count / total) * 100) if total > 0 else 0
+
+    for ticket in tickets:
+        text = f"{ticket['summary']}. {ticket['description']}"
+        level, keyword = classify_risk_ticket(ticket)
+        if level and ticket['id'] not in seen_risks:
+            all_risks.append({
+                'level': level,
+                'text': f"[{ticket['id']}] {ticket['summary']}",
+                'id': ticket['id'],
+                'status': ticket['status'],
+                'assignee': ticket['assignee']
+            })
+            seen_risks.add(ticket['id'])
+
+        if ticket['status'] in ['Blocked', 'To Do'] and \
+           ticket['priority'] in ['Critical', 'High']:
+            if ticket['assignee'] == 'Unassigned':
+                all_actions.append(
+                    f"Assign {ticket['id']} ({ticket['summary']}) immediately"
+                )
+            else:
+                all_actions.append(
+                    f"Unblock {ticket['id']} ({ticket['summary']}) "
+                    f"— assigned to {ticket['assignee']}"
+                )
+
+    order = {'High': 0, 'Medium': 1, 'Low': 2}
+    all_risks.sort(key=lambda x: order.get(x['level'], 3))
+    all_risks = all_risks[:6]
+    all_actions = all_actions[:5]
+
+    if critical_count >= 2 or blocked_count >= 2:
+        health = 'Critical'
+    elif critical_count == 1 or blocked_count == 1 or \
+         completion_pct < 40:
+        health = 'At risk'
+    else:
+        health = 'On track'
+
+    summary = (
+        f"{data['project']} has {total} tickets with "
+        f"{completion_pct}% completion. "
+        f"{critical_count} critical ticket(s) and "
+        f"{blocked_count} blocked ticket(s) require immediate attention. "
+        f"{unassigned_count} ticket(s) are currently unassigned."
+    )
+
+    if not all_actions:
+        all_actions = [
+            "Review all unassigned tickets and allocate owners",
+            "Send sprint status update to stakeholders",
+            "Schedule daily standup to track critical items"
+        ]
+
+    return jsonify({
+        'health': health,
+        'summary': summary,
+        'risks': all_risks,
+        'actions': all_actions,
+        'stats': {
+            'total': total,
+            'done': done_count,
+            'completion_pct': completion_pct,
+            'critical': critical_count,
+            'blocked': blocked_count,
+            'unassigned': unassigned_count
+        },
+        'project': data['project'],
+        'sprint': data['sprint']
+    })
+
+
+def classify_risk_ticket(ticket):
+    if ticket['priority'] == 'Critical' or ticket['status'] == 'Blocked':
+        return 'High', ticket['priority']
+    if ticket['priority'] == 'High' or ticket['status'] == 'In Progress' \
+       and ticket['assignee'] == 'Unassigned':
+        return 'Medium', ticket['priority']
+    if ticket['priority'] == 'Medium':
+        return 'Low', ticket['priority']
+    return None, None
 
 if __name__ == '__main__':
     app.run(debug=True)
