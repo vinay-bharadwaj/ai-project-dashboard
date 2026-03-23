@@ -1,24 +1,41 @@
 # AI Project Status Dashboard
 
-An intelligent web app that analyzes project status updates and instantly returns:
+An intelligent web app that analyzes project health and sprint status —
+built to demonstrate AI-assisted program management skills.
 
-- A plain-English summary
-- Flagged risks (High / Medium / Low)
+**Live demo:** https://ai-project-dashboard-6os8.onrender.com
+
+---
+
+## What it does
+
+### Manual analysis
+Paste any project status update and instantly get:
+- Plain-English summary of project health
+- Risks flagged by severity (High / Medium / Low)
 - Recommended action items
-- Overall project health (On track / At risk / Critical)
+- Overall health status (On track / At risk / Critical)
 
-## How it works
+### Jira sprint analysis
+Connects to a Jira sprint and automatically produces:
+- Sprint completion percentage
+- Count of critical, blocked, and unassigned tickets
+- Risk breakdown by ticket ID with assignee
+- Prioritized action items for the PM
 
-This project uses a **rule-based NLP engine** built entirely in Python —
-no external AI APIs, no cost, no rate limits. The analyzer scans project
-updates for risk keywords, scores sentences by severity, and generates
-structured output. This makes it fast, predictable, and easy to extend.
+---
 
 ## Tech stack
 
-- **Frontend**: HTML, CSS, JavaScript
-- **Backend**: Python, Flask
-- **Analysis**: Custom NLP engine (rule-based keyword scoring)
+| Layer | Technology |
+|---|---|
+| Frontend | HTML, CSS, JavaScript |
+| Backend | Python, Flask |
+| Analysis | Custom rule-based NLP engine |
+| Jira | Jira REST API (mock data for demo) |
+| Deployment | Render (free tier) |
+
+---
 
 ## How to run locally
 
@@ -30,7 +47,7 @@ cd ai-project-dashboard
 
 ### 2. Install dependencies
 ```
-pip install flask
+pip install -r requirements.txt
 ```
 
 ### 3. Run the app
@@ -39,24 +56,50 @@ python app.py
 ```
 
 Open your browser at `http://localhost:5000`
-or 
-Live demo : "https://ai-project-dashboard-6os8.onrender.com/"
+
+---
 
 ## Project structure
 ```
 ai-project-dashboard/
-├── index.html        # Frontend dashboard UI
-├── app.py            # Python/Flask backend + NLP analysis engine
-├── requirements.txt  # Python dependencies
-├── .gitignore        # Files excluded from version control
-└── README.md         # This file
+├── index.html          # Frontend — tabbed dashboard UI
+├── app.py              # Backend — Flask server + NLP engine
+├── jira_connector.py   # Jira integration layer
+├── mock_jira.py        # Realistic mock sprint data
+├── requirements.txt    # Python dependencies
+├── render.yaml         # Render deployment config
+├── .gitignore          # Files excluded from version control
+└── README.md           # This file
 ```
+
+---
+
+## Connecting to real Jira
+
+To connect to a live Jira project, open `jira_connector.py` and:
+
+1. Set `USE_REAL_JIRA = True`
+2. Fill in your credentials:
+```python
+JIRA_BASE_URL = "https://your-org.atlassian.net"
+JIRA_EMAIL = "you@company.com"
+JIRA_API_TOKEN = "your-token-here"
+JIRA_PROJECT_KEY = "YOUR-PROJECT"
+```
+3. Generate your API token at: https://id.atlassian.com/manage-profile/security/api-tokens
+
+No other code changes needed — the rest of the app works automatically.
+
+---
 
 ## Roadmap
 
 - [x] Rule-based NLP analysis engine
 - [x] Risk detection and severity scoring
 - [x] Action item extraction
-- [ ] Jira integration to fetch and analyze tickets automatically
+- [x] Jira integration (mock data)
+- [x] Deployed live on Render
+- [ ] CSV export of analysis results
+- [ ] Power BI dashboard connected to CSV export
+- [ ] Real Jira API connection
 - [ ] AI API integration (Claude / Gemini) as optional enhancement
-- [ ] Export analysis as PDF report
