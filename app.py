@@ -1,7 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from jira_connector import get_tickets
 import re
 import json
+import csv
+import io
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -270,6 +273,61 @@ def classify_risk_ticket(ticket):
     if ticket['priority'] == 'Medium':
         return 'Low', ticket['priority']
     return None, None
+
+@app.route('/export-csv', methods=['POST'])
+def export_csv():
+    data = request.get_json()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    writer.writerow(['AI Project Status Dashboard — Export'])
+    writer.writerow(['Generated on', timestamp])
+    writer.writerow([])
+
+    writer.writerow(['OVERALL HEALTH'])
+    writer.writerow(['Status', data.get('health', '—')])
+    writer.writerow([])
+
+    writer.writerow(['SUMMARY'])
+    writer.writerow([data.get('summary', '—')])
+    writer.writerow([])
+
+    writer.writerow(['RISKS'])
+    writer.writerow(['Severity', 'Description'])
+    for risk in data.get('risks', []):
+        ticket_id = risk.get('id', '')
+        text = f"[{ticket_id}] {risk['text']}" if ticket_id else risk['text']
+        writer.writerow([risk['level'], text])
+    writer.writerow([])
+
+    writer.writerow(['ACTION ITEMS'])
+    writer.writerow(['#', 'Action'])
+    for i, action in enumerate(data.get('actions', []), 1):
+        writer.writerow([i, action])
+    writer.writerow([])
+
+    if data.get('stats'):
+        s = data['stats']
+        writer.writerow(['SPRINT STATS'])
+        writer.writerow(['Total tickets', s.get('total', '—')])
+        writer.writerow(['Completed', s.get('done', '—')])
+        writer.writerow(['Completion %', str(s.get('completion_pct', '—')) + '%'])
+        writer.writerow(['Critical tickets', s.get('critical', '—')])
+        writer.writerow(['Blocked tickets', s.get('blocked', '—')])
+        writer.writerow(['Unassigned tickets', s.get('unassigned', '—')])
+
+    filename = f"project_analysis_{datetime.now().strftime('%Y_%m_%d')}.csv"
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition': f'attachment; filename={filename}'
+        }
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -128,6 +128,23 @@
 
     .btn-sample:hover { background: #dbeafe; }
 
+    .btn-export {
+      display: none;
+      margin-top: 4px;
+      margin-bottom: 24px;
+      padding: 9px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-export:hover { background: #dcfce7; }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -347,6 +364,12 @@
           <p class="section-title">Action items</p>
           <div id="actions-list"></div>
         </div>
+
+        <button class="btn-export" id="export-btn"
+          onclick="exportCSV('manual')">
+          Download CSV report
+        </button>
+
       </div>
 
     </div>
@@ -414,6 +437,12 @@
           <p class="section-title">Recommended actions</p>
           <div id="j-actions"></div>
         </div>
+
+        <button class="btn-export" id="jira-export-btn"
+          onclick="exportCSV('jira')">
+          Download CSV report
+        </button>
+
       </div>
 
     </div>
@@ -422,6 +451,9 @@
 
   <script>
     const SAMPLE_TEXT = `Sprint 4 is 70% complete and the backend API integration is finished. However the mobile UI has a critical bug that is blocking the QA team from testing. The launch is delayed by 3 days due to a dependency on the design team who are still finalizing assets. We need to escalate this to the director today. The team should schedule a daily standup to track the bug resolution. Stakeholder update is pending and must be sent by EOD.`;
+
+    let lastManualResult = null;
+    let lastJiraResult = null;
 
     function switchTab(tab) {
       document.querySelectorAll('.tab-content').forEach(el => {
@@ -451,8 +483,10 @@
     function clearAll() {
       document.getElementById('update-input').value = '';
       document.getElementById('results').style.display = 'none';
+      document.getElementById('export-btn').style.display = 'none';
       document.getElementById('char-count').textContent = '0 characters';
       document.getElementById('char-count').style.color = '#aaa';
+      lastManualResult = null;
       hideError();
     }
 
@@ -479,6 +513,7 @@
       hideError();
       document.getElementById('analyze-btn').disabled = true;
       document.getElementById('results').style.display = 'none';
+      document.getElementById('export-btn').style.display = 'none';
       document.getElementById('loading').style.display = 'block';
       try {
         const response = await fetch('/analyze', {
@@ -498,21 +533,27 @@
     }
 
     function displayResults(data) {
+      lastManualResult = data;
+      document.getElementById('export-btn').style.display = 'block';
+
       const now = new Date();
       document.getElementById('timestamp').textContent =
         'Last analyzed: ' + now.toLocaleDateString('en-IN', {
           day: 'numeric', month: 'short', year: 'numeric',
           hour: '2-digit', minute: '2-digit'
         });
+
       const healthEl = document.getElementById('health-value');
       healthEl.textContent = data.health;
       healthEl.className = 'metric-value';
       if (data.health === 'On track') healthEl.classList.add('health-green');
       else if (data.health === 'At risk') healthEl.classList.add('health-amber');
       else healthEl.classList.add('health-red');
+
       document.getElementById('risk-count').textContent = data.risks.length;
       document.getElementById('action-count').textContent = data.actions.length;
       document.getElementById('summary-text').textContent = data.summary;
+
       const risksList = document.getElementById('risks-list');
       risksList.innerHTML = '';
       if (data.risks.length === 0) {
@@ -528,6 +569,7 @@
           risksList.appendChild(div);
         });
       }
+
       const actionsList = document.getElementById('actions-list');
       actionsList.innerHTML = '';
       data.actions.forEach(action => {
@@ -536,6 +578,7 @@
         div.innerHTML = `<div class="dot"></div><span>${action}</span>`;
         actionsList.appendChild(div);
       });
+
       document.getElementById('results').style.display = 'block';
       document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
     }
@@ -543,6 +586,7 @@
     async function analyzeJira() {
       document.getElementById('jira-btn').disabled = true;
       document.getElementById('jira-results').style.display = 'none';
+      document.getElementById('jira-export-btn').style.display = 'none';
       document.getElementById('jira-loading').style.display = 'block';
       try {
         const response = await fetch('/jira-analyze');
@@ -558,6 +602,9 @@
     }
 
     function displayJiraResults(data) {
+      lastJiraResult = data;
+      document.getElementById('jira-export-btn').style.display = 'block';
+
       const s = data.stats;
       document.getElementById('j-total').textContent = s.total;
       document.getElementById('j-done').textContent = s.done;
@@ -565,13 +612,16 @@
       document.getElementById('j-critical').textContent = s.critical;
       document.getElementById('j-blocked').textContent = s.blocked;
       document.getElementById('j-unassigned').textContent = s.unassigned;
+
       const healthEl = document.getElementById('j-health');
       healthEl.textContent = data.health;
       healthEl.className = 'metric-value';
       if (data.health === 'On track') healthEl.classList.add('health-green');
       else if (data.health === 'At risk') healthEl.classList.add('health-amber');
       else healthEl.classList.add('health-red');
+
       document.getElementById('j-summary').textContent = data.summary;
+
       const risksList = document.getElementById('j-risks');
       risksList.innerHTML = '';
       data.risks.forEach(risk => {
@@ -587,6 +637,7 @@
           </span>`;
         risksList.appendChild(div);
       });
+
       const actionsList = document.getElementById('j-actions');
       actionsList.innerHTML = '';
       data.actions.forEach(action => {
@@ -595,8 +646,35 @@
         div.innerHTML = `<div class="dot"></div><span>${action}</span>`;
         actionsList.appendChild(div);
       });
+
       document.getElementById('jira-results').style.display = 'block';
       document.getElementById('jira-results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function exportCSV(source) {
+      const data = source === 'jira' ? lastJiraResult : lastManualResult;
+      if (!data) {
+        alert('Please run an analysis first before exporting.');
+        return;
+      }
+      try {
+        const response = await fetch('/export-csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `project_analysis_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        alert('Export failed. Make sure app.py is running.');
+      }
     }
   </script>
 </body>
