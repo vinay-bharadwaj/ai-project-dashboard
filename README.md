@@ -99,7 +99,7 @@ No other code changes needed — the rest of the app works automatically.
 - [x] Action item extraction
 - [x] Jira integration (mock data)
 - [x] Deployed live on Render
-- [ ] CSV export of analysis results
+- [x] CSV export of analysis results
 - [ ] Power BI dashboard connected to CSV export
 - [ ] Real Jira API connection
 - [ ] AI API integration (Claude / Gemini) as optional enhancement
